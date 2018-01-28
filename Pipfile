@@ -1,0 +1,12 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+
+[packages]
+
+redis = "*"
+requests = "*"
+rq = "== 0.10.0"
+lxml = "== 4.1.1"
