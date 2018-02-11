@@ -46,18 +46,18 @@ class DoubanSpider(object):
         return result[0] if result else None
 
 
-    def _init_page_urls(self, group_list):
+    def _init_page_urls(self, group_name, group_url):
         """初始化需要抓取页面的URL
 
         @group_list, str, 小组URL
         """
         urls = []
         for page in range(config.MAX_PAGE):
-            base_url = "{}{}".format(group_list, config.GROUP_SUFFIX)
+            base_url = "{}{}".format(group_url, config.GROUP_SUFFIX)
             url = base_url.format(page * 25)
             urls.append(url)
 
-        self.cache.r_sadd('group:index_urls:hz', urls)
+        self.cache.r_sadd("group:{}:hz".format(group_name), urls)
         return urls
 
     def _crawl_page(self, url, group_name):
@@ -67,21 +67,33 @@ class DoubanSpider(object):
         @group_name, str, 小组名称
         """
         logging.info("{} Processing page: {}".format(time.asctime(), url))
+
+        if self.cahce.r_get_number("group:{}:incr".format(group_name)) >= config.MAX_403_NUMBER:
+            logging.warn("{} Request has been block: {}".format(time.asctime(), url))
+            # return -1 will off redis pop new url to crawl page
+            return -1
+
         # html = self.fetch(url)
         # self.cache.r_set('tmp:group:html', html)
         html = self.cache.r_get('tmp:group:html')
-        lists = self.parser(self.__rules['topic_item'], html, True)
-        new_topics, old_topics = self._get_page_info(lists, group_name)
-        # TODO: 如果返回空或者4xx等错误，将URL添加到重试队列中。
+        new_topics, old_topics = self._get_page_info(html, group_name, url)
+
         return new_topics, old_topics
 
-    def _get_page_info(self, lists, group_name):
+    def _get_page_info(self, html, group_name, url):
         """获取每一页的帖子的基本信息，并区分新旧帖，避免数据重复
 
         @lists, list, 当前页的帖子项
         @group_name, str, 小组名称
         """
+        if "机器人".encode() in html:
+            logging.warn("{} 403.html".format(url))
+            self.cache.r_sadd("group:{}:403".format(group_name), url)
+            return None
+
         new_topics, old_topics, ids = [], [], []
+        lists = self.parser(self.__rules['topic_item'], html, True)
+
         # 第一行是标题头,舍掉
         for list in lists[1:]:
             topic = {}
@@ -104,7 +116,7 @@ class DoubanSpider(object):
         self.cache.r_sadd('group:{}:topic_ids'.format(group_name), ids)
         return new_topics, old_topics
 
-    def _crawl_detail(self, url):
+    def _crawl_detail(self, group_name, url):
         """爬取每个帖子的详细内容
 
         @url, str, 每个帖子的URL
@@ -112,22 +124,28 @@ class DoubanSpider(object):
         logging.info("{} Processing topic: {}".format(time.asctime(), url))
         # TODO: 如果帖子已经存在，则不再进行爬取？
 
+        if self.cahce.r_get_number("group:{}:incr".format(group_name)) >= config.MAX_403_NUMBER:
+            logging.warn("{} Request has been block: {}".format(time.asctime(), url))
+            # return -1 will off redis pop new url to crawl page
+            return -1
+
         # html = self.fetch(url)
         # self.cache.r_set('tmp:topic:html', html)
         html = self.cache.r_get('tmp:topic:html')
-        topic = self._get_detail_info(html, url)
-        # TODO: 如果返回空或者4xx等错误，将URL添加到重试队列中。
+        topic = self._get_detail_info(html, group_name, url)
 
         return html
 
-    def _get_detail_info(self, html, url):
+    def _get_detail_info(self, html, group_name, url):
         """获取帖子详情
 
         """
         if "机器人".encode() in html:
             logging.warn("{} 403.html".format(url))
+            self.cache.r_sadd("group:{}:403".format(group_name), url)
             return None
         topic = {}
+        images = []
         title = self.parser(self.__rules['detail_title_sm'], html) \
                 or self.parser(self.__rules['detail_title_lg'], html)
         if title is None:
@@ -141,7 +159,7 @@ class DoubanSpider(object):
         content = "\n".join(self.parser(self.__rules['content'], html, True))
         topic['content'] = content
 
-        topic['images'] = self.parser(self.__rules['images'], html, True)
+        images.append(self.parser(self.__rules['images'], html, True))
 
         # phone = re.findall(r'(1[3|5|7|8|][0-9]{8})', content)
         # topic['phone'] = '' if not phone else phone[0]
@@ -155,7 +173,10 @@ class DoubanSpider(object):
         # modle = re.findall(r'([\d一二两三四五六七八九][居室房]([123一二两三]厅)?([12一二两]厨)?([1234一二两三四]卫)?([12一二两]厨)?)', content)
         # topic['model'] = ''
 
-        return topic
+        return topic, images
+
+    def run(self):
+        pass
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
@@ -164,7 +185,7 @@ if __name__ == "__main__":
     # # http://7u2ha0.com1.z0.glb.clouddn.com/reset_password.jpg
     # spider._init_page_urls("https://www.douban.com/group/145219/")
     # spider._crawl_page(config.TEST_URL)
-    # print(spider._crawl_page("http://localhost:3000", 'hz'))
+    print(spider._crawl_page("http://localhost:3000", 'hz'))
     # print(time.asctime())
-    res = spider._crawl_detail("https://www.douban.com/group/topic/111003856/")
-    print(spider._get_detail_info(res, "https://www.douban.com/group/topic/111003856/"))
+    # res = spider._crawl_detail('hz', "https://www.douban.com/group/topic/111003856/")
+    # print(spider._get_detail_info(res, 'hz', "https://www.douban.com/group/topic/111003856/"))
