@@ -50,9 +50,9 @@ def get_header():
     }
 
 # DouBan group url lists.
-GROUP_LISTS = [
-    "https://www.douban.com/group/145219/"
-]
+GROUP_LISTS = {
+    "hz1": "https://www.douban.com/group/145219/"
+}
 
 # paginate url query
 GROUP_SUFFIX = "discussion?start={}"
@@ -98,3 +98,6 @@ RETRY_TIMES = 3
 
 # test data
 TEST_URL = "https://www.douban.com/group/145219/discussion?start=0"
+
+# 请求返回 403 最大次数
+MAX_403_NUMBER = 10
