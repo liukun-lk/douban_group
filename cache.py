@@ -33,9 +33,18 @@ class Cache(object):
     def r_get(self, cache_key):
         return self.__client.get(cache_key)
 
+    def r_incr(self, cache_key, amount = 1):
+        return self.__client.incr(cache_key, amount)
+
+    def r_get_number(self, cache_key):
+        return int(self.r_get(cache_key))
+
 if __name__ == "__main__":
-    # print(Cache().r_sadd('group:index_url:hz', ['https://www.douban.com/group/145219/discussion?start=0', 'https://www.douban.com/group/145219/discussion?start=25']))
-    # print(Cache().r_smembers('group:index_url:hz'))
-    # print(Cache().r_spop('group:index_url:hz'))
-    # print(Cache().r_smembers('group:index_url:hz'))
-    print(Cache().r_smembers("group:hz:topic_ids"))
+    cache = Cache()
+    # print(cache.r_sadd('group:index_url:hz', ['https://www.douban.com/group/145219/discussion?start=0', 'https://www.douban.com/group/145219/discussion?start=25']))
+    # print(cache.r_smembers('group:index_url:hz'))
+    # print(cache.r_spop('group:index_url:hz'))
+    # print(cache.r_smembers('group:index_url:hz'))
+    # print(cache.r_smembers("group:hz:topic_ids"))
+    # print(cache.r_incr('group:incr:hz'))
+    print(cache.r_get_number('group:incr:hz'))
