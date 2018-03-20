@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-
 import random
 
 # http User-Agent
@@ -37,8 +36,9 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:2.0b13pre) Gecko/20110307 Firefox/4.0b13pre",
     "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:16.0) Gecko/20100101 Firefox/16.0",
     "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11",
-    "Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10"
+    "Mozilla/5.0 (X11; U; Linux x86_64; zh-CN; rv:1.9.2.10) Gecko/20100922 Ubuntu/10.10 (maverick) Firefox/3.6.10",
 ]
+
 
 def get_header():
     return {
@@ -49,17 +49,13 @@ def get_header():
         'Accept-Encoding': 'gzip, deflate',
     }
 
-# DouBan group url lists.
-GROUP_LISTS = {
-    "hz1": "https://www.douban.com/group/145219/"
-}
 
+# DouBan group url lists.
+GROUP_LISTS = {"hz1": "https://www.douban.com/group/145219/"}
 # paginate url query
 GROUP_SUFFIX = "discussion?start={}"
-
 # crawl 5 pages
 MAX_PAGE = 5
-
 # match rules
 RULES = {
     # 每个帖子项
@@ -78,26 +74,20 @@ RULES = {
     "create_time": "//span[@class='color-green']/text()",
     "detail_author": "//span[@class='from']/a/text()",
     "content": "//div[@class='topic-content']/p/text()",
-    "images": "//*[@id='link-report']/div/div/img/@src",
+    "content_text": "//div[@class='topic-content']//text()",
+    "images": "//*[@id='link-report']//img/@src",
 }
-
 # 并发数
 POOL_SIZE = 20
-
 # 监控周期(秒),默认10分钟
 WATCH_INTERVAL = 10 * 60
-
 # 重载代理周期
 PROXY_INTERVAL = 30 * 60
-
 # 请求超时时间
 TIMEOUT = 3
-
 # 请求重试次数
 RETRY_TIMES = 3
-
 # test data
 TEST_URL = "https://www.douban.com/group/145219/discussion?start=0"
-
 # 请求返回 403 最大次数
 MAX_403_NUMBER = 10
