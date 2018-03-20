@@ -1,11 +1,10 @@
 #! /usr/bin/env python3
-
 import redis
+
 
 class Cache(object):
     """Redis客户端
     """
-
     __client = None
 
     def __init__(self):
@@ -16,6 +15,7 @@ class Cache(object):
     def r_sadd(self, cache_key, values):
         if not values:
             return 0
+
         return self.__client.sadd(cache_key, *values)
 
     def r_smembers(self, cache_key):
@@ -33,11 +33,12 @@ class Cache(object):
     def r_get(self, cache_key):
         return self.__client.get(cache_key)
 
-    def r_incr(self, cache_key, amount = 1):
+    def r_incr(self, cache_key, amount=1):
         return self.__client.incr(cache_key, amount)
 
     def r_get_number(self, cache_key):
         return int(self.r_get(cache_key))
+
 
 if __name__ == "__main__":
     cache = Cache()
