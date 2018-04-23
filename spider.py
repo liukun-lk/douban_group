@@ -1,12 +1,15 @@
 #! /usr/bin/env python3
 from cache import Cache
-from lxml import etree
 import config
 import logging
 import re
-import requests
 import time
+from random import random
+from requests_html import HTMLSession, user_agent
 from db import db, TopicList, Topic
+
+session = HTMLSession()
+user_agent("google chrome")
 
 
 class DoubanSpider(object):
@@ -23,36 +26,27 @@ class DoubanSpider(object):
         @url, str
         """
         try:
-            res = requests.get(
-                url=url, headers=config.get_header(), timeout=config.TIMEOUT
-            )
-            return res.content
+            time.sleep(random() * 1)
+            res = session.get(url)
+            return res.html
 
         except Exception:
             count = 0
             while count < config.RETRY_TIMES:
                 try:
                     # TODO: 添加代理
-                    res = requests.get(
-                        url=url, headers=config.get_header(), timeout=config.TIMEOUT
-                    )
-                    return res.content
+                    res = session.get(url)
+                    return res.html
 
                 except Exception:
                     count += 1
                     time.sleep(2 ** count)
         return None
 
-    def parser(self, regx, body, multi=False):
+    def parser(self, regx, html, first=False):
         """解析元素， xpath 语法
         """
-        if isinstance(body, bytes):
-            body = etree.HTML(body)
-        result = body.xpath(regx)
-        if multi:
-            return result
-
-        return result[0] if result else None
+        return html.xpath(regx, first=first)
 
     def _init_page_urls(self, group_name):
         """初始化需要抓取页面的URL
@@ -61,7 +55,7 @@ class DoubanSpider(object):
         """
         urls = []
         for page in range(config.MAX_PAGE):
-            base_url = "{}{}".format(self.__group_list['hz1'], config.GROUP_SUFFIX)
+            base_url = "{}{}".format(self.__group_list["hz1"], config.GROUP_SUFFIX)
             url = base_url.format(page * 25)
             urls.append(url)
         # self.cache.r_sadd("group:{}:hz".format(group_name), urls)
@@ -98,31 +92,34 @@ class DoubanSpider(object):
             return None
 
         new_topics, old_topics, ids = [], [], []
-        lists = self.parser(self.__rules['topic_item'], html, True)
+        lists = html.xpath(self.__rules["topic_item"])
         # 第一行是标题头,舍掉
         for list in lists[1:]:
             topic = {}
-            topic['title'] = self.parser(self.__rules['title'], list)
-            topic['author'] = self.parser(self.__rules['author'], list)
-            topic['reply'] = self.parser(self.__rules['reply'], list) or 0
-            topic['last_reply_time'] = self.parser(
-                self.__rules['last_reply_time'], list
-            )
-            topic['url'] = self.parser(self.__rules['url'], list)
+            info = list.text.split("\n")
+            if len(info) == 3:
+                info.insert(2, "0")
+            # ['话题', '作者', '回应', '最后回应']
+            topic["title"] = info[0]
+            topic["author"] = info[1]
+            topic["reply"] = info[2]
+            topic["last_reply_time"] = info[3]
+            # requests-html lib first return soup_parse object :(
+            topic["url"] = list.lxml.cssselect("tr td.title a")[0].get("href")
             now = time.asctime()
-            topic['crawled_at'] = now
-            topic['updated_at'] = now
-            topic['topic_id'] = re.findall(r'(\d+)', topic['url'])[0]
-            ids.append(topic['topic_id'])
+            topic["crawled_at"] = now
+            topic["updated_at"] = now
+            topic["topic_id"] = re.findall(r"(\d+)", topic["url"])[0]
+            ids.append(topic["topic_id"])
             if self.cache.r_sismember(
-                'group:{}:topic_ids'.format(group_name), topic['topic_id']
+                "group:{}:topic_ids".format(group_name), topic["topic_id"]
             ):
                 old_topics.append(topic)
             else:
                 new_topics.append(topic)
                 with db.atomic():
                     TopicList.create(**topic)
-        self.cache.r_sadd('group:{}:topic_ids'.format(group_name), ids)
+        self.cache.r_sadd("group:{}:topic_ids".format(group_name), ids)
         return new_topics, old_topics
 
     def _crawl_detail(self, group_name, url):
@@ -141,7 +138,7 @@ class DoubanSpider(object):
         html = self.fetch(url)
         # self.cache.r_set('tmp:topic:html', html)
         # html = self.cache.r_get('tmp:topic:html')
-        topic, _ = self._persist_detail_info(html, group_name, url)
+        topic = self._persist_detail_info(html, group_name, url)
         return html
 
     def _persist_detail_info(self, html, group_name, url):
@@ -155,28 +152,28 @@ class DoubanSpider(object):
 
         topic = {}
         images = []
-        title = self.parser(self.__rules['detail_title_sm'], html) or self.parser(
-            self.__rules['detail_title_lg'], html
+        title = self.parser(self.__rules["detail_title_lg"], html, True) or self.parser(
+            self.__rules["detail_title_sm"], html, True
         )
         if title is None:
             return None
 
-        topic['title'] = title.strip()
-        topic['url'] = url
-        topic['crawled_at'] = time.asctime()
-        topic['create_time'] = self.parser(self.__rules['create_time'], html)
-        topic['author'] = self.parser(self.__rules['detail_author'], html)
-        content = "\n".join(self.parser(self.__rules['content'], html, True))
-        if content is not '':
-            topic['content'] = content
+        topic["title"] = title.strip()
+        topic["url"] = url
+        topic["crawled_at"] = time.asctime()
+        topic["create_time"] = self.parser(self.__rules["create_time"], html, True)
+        topic["author"] = self.parser(self.__rules["detail_author"], html, True)
+        content = "\n".join(self.parser(self.__rules["content"], html))
+        if content is not "":
+            topic["content"] = content
         else:
-            content = "\n".join(self.parser(self.__rules['content_text'], html, True))
-            topic['content'] = content
-        images.extend(self.parser(self.__rules['images'], html, True))
+            content = "\n".join(self.parser(self.__rules["content_text"], html))
+            topic["content"] = content
+        images.extend(self.parser(self.__rules["images"], html))
         if len(images) > 0:
-            topic['images'] = ','.join(images)
+            topic["images"] = ",".join(images)
         else:
-            topic['images'] = ''
+            topic["images"] = ""
         # phone = re.findall(r'(1[3|5|7|8|][0-9]{8})', content)
         # topic['phone'] = '' if not phone else phone[0]
         # sns = re.findall(r'(微信|qq|QQ)号?(:|：|\s)?(\s)?([\d\w_一二两三四五六七八九零]{5,})', content)
@@ -187,27 +184,28 @@ class DoubanSpider(object):
         # topic['model'] = ''
         with db.atomic():
             Topic.create(**topic)
-        return topic, images
+        return topic
 
     def run(self):
-        group_name = 'hz1'
+        group_name = "hz1"
         topic_list_urls = self._init_page_urls(group_name)
         for url in topic_list_urls:
             new_topics, old_topics = self._crawl_page(url, group_name)
             for topic in new_topics:
-                self._crawl_detail(group_name, topic['url'])
+                self._crawl_detail(group_name, topic["url"])
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     spider = DoubanSpider()
     spider.run()
-# html_body = spider.fetch("http://106.15.248.58")
-# # http://7u2ha0.com1.z0.glb.clouddn.com/reset_password.jpg
 # spider._init_page_urls("https://www.douban.com/group/145219/")
 # spider._crawl_page(config.TEST_URL)
+# lists = session.get("https://www.douban.com/group/145219/discussion?start=0").html.xpath(config.RULES['topic_item'], first=False)
+# for list in lists[1:]:
+# print(list.lxml.cssselect('tr td.title a'))
 # print(spider._crawl_page("https://www.douban.com/group/145219/discussion?start=0", 'hz1'))
 # print(time.asctime())
-# res = spider._crawl_detail('hz1', "https://www.douban.com/group/topic/113860482/")
+# res = spider._crawl_detail("hz1", "https://www.douban.com/group/topic/113860482/")
 # print(spider._get_detail_info(res, 'hz', "https://www.douban.com/group/topic/111003856/"))
 # print(spider._init_page_urls('hz1'))

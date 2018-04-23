@@ -7,8 +7,10 @@ verify_ssl = true
 [packages]
 
 redis = "*"
-requests = "*"
-rq = "== 0.10.0"
-lxml = "== 4.1.1"
 peewee = "== 3.0.16"
+requests-html = "*"
+
+
+[dev-packages]
+
 black = "*"
