@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 from cache import Cache
 import config
+import datetime
 import logging
 import re
 import time
@@ -28,7 +29,10 @@ class DoubanSpider(object):
         try:
             time.sleep(random() * 1)
             res = session.get(url)
-            return res.html
+            if res.status_code == 200:
+                return res.html
+            else:
+                return None
 
         except Exception:
             count = 0
@@ -75,6 +79,8 @@ class DoubanSpider(object):
         #     # return -1 will off redis pop new url to crawl page
         #     return -1
         html = self.fetch(url)
+        if html is None:
+            return [], []
         # self.cache.r_set('tmp:group:html', html)
         # html = self.cache.r_get('tmp:group:html')
         new_topics, old_topics = self._get_page_info(html, group_name, url)
@@ -103,7 +109,7 @@ class DoubanSpider(object):
             topic["title"] = info[0]
             topic["author"] = info[1]
             topic["reply"] = info[2]
-            topic["last_reply_time"] = info[3]
+            topic["last_reply_time"] = '-'.join([str(datetime.date.today().year), info[3] + ':00']) # 2018-03-17 21:03:00
             # requests-html lib first return soup_parse object :(
             topic["url"] = list.lxml.cssselect("tr td.title a")[0].get("href")
             now = time.asctime()
@@ -136,6 +142,8 @@ class DoubanSpider(object):
         #     # return -1 will off redis pop new url to crawl page
         #     return -1
         html = self.fetch(url)
+        if html is None:
+            return None
         # self.cache.r_set('tmp:topic:html', html)
         # html = self.cache.r_get('tmp:topic:html')
         topic = self._persist_detail_info(html, group_name, url)
