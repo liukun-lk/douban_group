@@ -7,10 +7,20 @@ import re
 import time
 from random import random
 from requests_html import HTMLSession, user_agent
-from db import db, TopicList, Topic
+from db import mysql_db, TopicList, Topic
 
 session = HTMLSession()
 user_agent("google chrome")
+
+
+def filter_emoji(author):
+    try:
+        # UCS-4
+        highpoints = re.compile(u"[\U00010000-\U0010ffff]")
+    except re.error:
+        # UCS-2
+        highpoints = re.compile(u"[\uD800-\uDBFF][\uDC00-\uDFFF]")
+    return highpoints.sub(u"\u25FD", author)
 
 
 class DoubanSpider(object):
@@ -31,6 +41,7 @@ class DoubanSpider(object):
             res = session.get(url)
             if res.status_code == 200:
                 return res.html
+
             else:
                 return None
 
@@ -81,6 +92,7 @@ class DoubanSpider(object):
         html = self.fetch(url)
         if html is None:
             return [], []
+
         # self.cache.r_set('tmp:group:html', html)
         # html = self.cache.r_get('tmp:group:html')
         new_topics, old_topics = self._get_page_info(html, group_name, url)
@@ -107,12 +119,14 @@ class DoubanSpider(object):
                 info.insert(2, "0")
             # ['话题', '作者', '回应', '最后回应']
             topic["title"] = info[0]
-            topic["author"] = info[1]
+            topic["author"] = filter_emoji(info[1])
             topic["reply"] = info[2]
-            topic["last_reply_time"] = '-'.join([str(datetime.date.today().year), info[3] + ':00']) # 2018-03-17 21:03:00
+            topic["last_reply_time"] = "-".join(
+                [str(datetime.date.today().year), info[3] + ":00"]
+            )  # 2018-03-17 21:03:00
             # requests-html lib first return soup_parse object :(
             topic["url"] = list.lxml.cssselect("tr td.title a")[0].get("href")
-            now = time.asctime()
+            now = time.strftime("%Y-%m-%d %H:%M:%S")
             topic["crawled_at"] = now
             topic["updated_at"] = now
             topic["topic_id"] = re.findall(r"(\d+)", topic["url"])[0]
@@ -123,7 +137,7 @@ class DoubanSpider(object):
                 old_topics.append(topic)
             else:
                 new_topics.append(topic)
-                with db.atomic():
+                with mysql_db.atomic():
                     TopicList.create(**topic)
         self.cache.r_sadd("group:{}:topic_ids".format(group_name), ids)
         return new_topics, old_topics
@@ -144,6 +158,7 @@ class DoubanSpider(object):
         html = self.fetch(url)
         if html is None:
             return None
+
         # self.cache.r_set('tmp:topic:html', html)
         # html = self.cache.r_get('tmp:topic:html')
         topic = self._persist_detail_info(html, group_name, url)
@@ -168,15 +183,16 @@ class DoubanSpider(object):
 
         topic["title"] = title.strip()
         topic["url"] = url
-        topic["crawled_at"] = time.asctime()
+        topic["crawled_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
         topic["create_time"] = self.parser(self.__rules["create_time"], html, True)
-        topic["author"] = self.parser(self.__rules["detail_author"], html, True)
+        author = self.parser(self.__rules["detail_author"], html, True)
+        topic["author"] = filter_emoji(author)
         content = "\n".join(self.parser(self.__rules["content"], html))
         if content is not "":
-            topic["content"] = content
+            topic["content"] = filter_emoji(content)
         else:
             content = "\n".join(self.parser(self.__rules["content_text"], html))
-            topic["content"] = content
+            topic["content"] = filter_emoji(content)
         images.extend(self.parser(self.__rules["images"], html))
         if len(images) > 0:
             topic["images"] = ",".join(images)
@@ -190,7 +206,7 @@ class DoubanSpider(object):
         # topic['area'] = '' if not area else ''.join(area[0])
         # modle = re.findall(r'([\d一二两三四五六七八九][居室房]([123一二两三]厅)?([12一二两]厨)?([1234一二两三四]卫)?([12一二两]厨)?)', content)
         # topic['model'] = ''
-        with db.atomic():
+        with mysql_db.atomic():
             Topic.create(**topic)
         return topic
 
