@@ -2,7 +2,9 @@
 from peewee import *
 import datetime
 
-db = SqliteDatabase('test.db')
+mysql_db = MySQLDatabase(
+    "douban_spider", user="root", password="", host="127.0.0.1", port=3306
+)
 
 
 class TopicList(Model):
@@ -16,7 +18,7 @@ class TopicList(Model):
     topic_id = IntegerField()
 
     class Meta:
-        database = db
+        database = mysql_db
 
 
 class Topic(Model):
@@ -29,14 +31,14 @@ class Topic(Model):
     images = TextField()
 
     class Meta:
-        database = db
+        database = mysql_db
 
 
 def init_table():
-    db.connect()
-    db.create_tables([TopicList, Topic])
-    db.close()
+    mysql_db.connect()
+    mysql_db.create_tables([TopicList, Topic])
+    mysql_db.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     init_table()

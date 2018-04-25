@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "74aba78e9f44c2841df0e774404ff38a13d807020536145c16b4d0d01be713f0"
+            "sha256": "4f70565bd850417016872c28c6f0256a35200fe4276b527737a330a245348834"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -115,9 +115,9 @@
         },
         "peewee": {
             "hashes": [
-                "sha256:3661fc7b06799c6f2783cb424f1853ba3db6106341c2eb04b5c5a5279e036b85"
+                "sha256:2dc2895d5ef6680e3f27926740e0d1679ca946d8705a5a51f7145c05c2d9556e"
             ],
-            "version": "==3.0.16"
+            "version": "==3.2.5"
         },
         "pyee": {
             "hashes": [
@@ -125,6 +125,13 @@
                 "sha256:4ec22817297b7024f89721cc34f790ee2767c5b5ca44284c565ee643abafbe32"
             ],
             "version": "==5.0.0"
+        },
+        "pymysql": {
+            "hashes": [
+                "sha256:04fa19fad017fdb21394fad2878c1d6bd346959d4fbfd1b66050a09fc636a321",
+                "sha256:32da4a66397077d42908e449688f2ec71c2b18892a6cd04f03ab2aa828a70f40"
+            ],
+            "version": "==0.8.0"
         },
         "pyppeteer": {
             "hashes": [
