@@ -29,6 +29,7 @@ class Topic(Model):
     author = CharField()
     content = TextField()
     images = TextField()
+    topic_id = IntegerField()
 
     class Meta:
         database = mysql_db
