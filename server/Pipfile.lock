@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "903ea670e1e389320ed1f7cac23eb9b152bf693ab77c2e9e1ac1c68d43d3d473"
+            "sha256": "e5abdb1be1805c5f0d61afa8610077379fb08fc438c0ebff4e0da29e3fa8cc39"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -68,5 +68,34 @@
             "version": "==0.14.1"
         }
     },
-    "develop": {}
+    "develop": {
+        "appdirs": {
+            "hashes": [
+                "sha256:d8b24664561d0d34ddfaec54636d502d7cea6e29c3eaf68f3df6180863e2166e",
+                "sha256:9e5896d1372858f8dd3344faf4e5014d21849c756c8d5701f78f8a103b372d92"
+            ],
+            "version": "==1.4.3"
+        },
+        "attrs": {
+            "hashes": [
+                "sha256:a17a9573a6f475c99b551c0e0a812707ddda1ec9653bed04c13841404ed6f450",
+                "sha256:1c7960ccfd6a005cd9f7ba884e6316b5e430a3f1a6c37c5f87d8b43f83b54ec9"
+            ],
+            "version": "==17.4.0"
+        },
+        "black": {
+            "hashes": [
+                "sha256:af80d5990a4af4bd8885847fef659d59c248d694ed7d2aa076ecaeabc6320006",
+                "sha256:b45061e041762296b0cbf8f476a3036109571e73ce6f3e2d10e1ccc4d0827d59"
+            ],
+            "version": "==18.4a3"
+        },
+        "click": {
+            "hashes": [
+                "sha256:29f99fc6125fbc931b758dc053b3114e55c77a6e4c6c3a2674a2dc986016381d",
+                "sha256:f15516df478d5a56180fbf80e68f206010e6d160fc39fa508b65e035fd75130b"
+            ],
+            "version": "==6.7"
+        }
+    }
 }
