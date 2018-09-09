@@ -8,27 +8,28 @@ mysql_db = MySQLDatabase(
 
 
 class TopicList(Model):
-    title = CharField()
-    author = CharField()
-    reply = IntegerField()
+    author          = CharField()
+    crawled_at      = DateTimeField(default=datetime.datetime.now)
     last_reply_time = DateTimeField(default=datetime.datetime.now)
-    url = CharField()
-    crawled_at = DateTimeField(default=datetime.datetime.now)
-    updated_at = DateTimeField(default=datetime.datetime.now)
-    topic_id = IntegerField()
+    reply           = IntegerField()
+    title           = CharField()
+    topic_id        = IntegerField()
+    updated_at      = DateTimeField(default=datetime.datetime.now)
+    url             = CharField()
 
     class Meta:
         database = mysql_db
 
 
 class Topic(Model):
-    title = CharField()
-    url = CharField()
-    crawled_at = DateTimeField(default=datetime.datetime.now)
+    author      = CharField()
+    content     = TextField()
+    crawled_at  = DateTimeField(default=datetime.datetime.now)
     create_time = DateTimeField(default=datetime.datetime.now)
-    author = CharField()
-    content = TextField()
-    images = TextField()
+    images      = TextField()
+    title       = CharField()
+    topic_id    = IntegerField()
+    url         = CharField()
 
     class Meta:
         database = mysql_db
