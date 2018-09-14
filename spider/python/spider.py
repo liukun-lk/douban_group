@@ -198,6 +198,7 @@ class DoubanSpider(object):
             topic["images"] = ",".join(images)
         else:
             topic["images"] = ""
+        topic["topic_id"] = re.findall(r"(\d+)", url)[0]
         # phone = re.findall(r'(1[3|5|7|8|][0-9]{8})', content)
         # topic['phone'] = '' if not phone else phone[0]
         # sns = re.findall(r'(微信|qq|QQ)号?(:|：|\s)?(\s)?([\d\w_一二两三四五六七八九零]{5,})', content)
